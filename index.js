@@ -9,7 +9,7 @@ const ffmpeg = require("fluent-ffmpeg");
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const app = express();
-app.use(express.json({ limit: "100mb" })); // To handle large base64 payloads
+app.use(express.json({ limit: "200mb" })); // To handle large base64 payloads
 app.use(cors());
 
 app.post("/media", async (req, res) => {
