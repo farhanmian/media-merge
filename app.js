@@ -20,6 +20,10 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get("/test", (req, res) => {
+  return res.json({ msg: "Hi, it's working!" });
+});
+
 app.post("/media", async (req, res) => {
   const { audioBase64, videoBase64 } = req.body;
 
