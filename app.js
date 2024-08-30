@@ -114,7 +114,7 @@ app.post("/media", async (req, res) => {
         setTimeout(() => {
           fs.unlinkSync(outputFilePath);
           console.log(`Deleted file: ${outputFilePath}`);
-        }, 1800000); // 1 hour in milliseconds
+        }, 600000); // 1 hour in milliseconds
 
         // Send response with the video link
         const videoUrl = `/videos/output_${randomId}.mp4`; // Update this line
