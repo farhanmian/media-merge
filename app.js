@@ -1,7 +1,3 @@
-// Set memory and max duration for the function
-// @vercel/functions/memory=3009
-// @vercel/functions/maxDuration=60
-
 const express = require("express");
 const fs = require("fs");
 const cors = require("cors");
@@ -13,8 +9,16 @@ const ffmpeg = require("fluent-ffmpeg");
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const app = express();
-app.use(express.json({ limit: "200mb" })); // To handle large base64 payloads
+app.use(express.json({ limit: "500mb" })); // To handle large base64 payloads
 app.use(cors());
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
+  next();
+});
 
 app.post("/media", async (req, res) => {
   const { audioBase64, videoBase64 } = req.body;
