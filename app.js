@@ -1,6 +1,7 @@
 const express = require("express");
 const fs = require("fs");
 const cors = require("cors");
+const { default: axios } = require("axios");
 // const ffmpeg = require("ffmpeg");
 // const Ffmpeg = require("fluent-ffmpeg");
 const ffmpegStatic = require("ffmpeg-static");
@@ -25,87 +26,34 @@ app.get("/test", (req, res) => {
 });
 
 app.post("/media", async (req, res) => {
-  const { audioBase64, videoBase64 } = req.body;
+  const { audioUrl, videoUrl } = req.body;
 
   try {
     // Decode base64 to binary and save as files
-    const audioBuffer = Buffer.from(audioBase64, "base64");
-    const videoBuffer = Buffer.from(videoBase64, "base64");
-
-    // fs.writeFileSync("input.webm", audioBuffer);
-    // fs.writeFileSync("reversed.webm", videoBuffer);
-
-    // Process the files with FFmpeg
-    // const process = new ffmpeg("input.webm");
-    // process.then(
-    //   (video) => {
-    //     console.log("video==", video);
-    //     video
-    //       .addCommand("-i", "reversed.webm")
-    //       .addCommand("-c:v", "copy")
-    //       .addCommand("-c:a", "aac")
-    //       .save("output.mp4", (error, file) => {
-    //         if (!error) {
-    //           // Read the output file and convert it to base64
-    //           const mp4Buffer = fs.readFileSync("output.mp4");
-    //           const mp4Base64 = mp4Buffer.toString("base64");
-
-    //           // Clean up temporary files
-    //           fs.unlinkSync("input.webm");
-    //           fs.unlinkSync("reversed.webm");
-    //           fs.unlinkSync("output.mp4");
-
-    //           // Return the resulting MP4 file in base64 format
-    //           res.json({ mp4Base64 });
-    //         } else {
-    //           console.error("Error during processing:", error);
-    //           res.status(500).json({ error: "Processing error" });
-    //         }
-    //       });
-    //   },
-    //   (err) => {
-    //     console.error("Error:", err);
-    //     res.status(500).json({ error: "File processing error" });
-    //   }
-    // );
-
-    // Use fluent-ffmpeg to combine the files
-
-    // Create input streams from buffers
-    // const audioStream = require("stream").Readable.from(audioBuffer);
-    // const videoStream = require("stream").Readable.from(videoBuffer);
-
-    // ffmpeg()
-    //   .input("input.webm")
-    //   .input("reversed.webm")
-    //   .outputOptions("-c:v copy")
-    //   .outputOptions("-c:a aac")
-    //   .on("end", () => {
-    //     console.log("tseting");
-    //     const mp4Buffer = fs.readFileSync("output.mp4");
-    //     const mp4Base64 = mp4Buffer.toString("base64");
-
-    //     // Clean up temporary files
-    //     fs.unlinkSync("input.webm");
-    //     fs.unlinkSync("reversed.webm");
-    //     fs.unlinkSync("output.mp4");
-
-    //     // Return the resulting MP4 file in base64 format
-    //     res.json({ mp4Base64 });
-    //   })
-    //   .on("error", (err) => {
-    //     console.error("Error during processing:", err);
-    //     res.status(500).json({ error: "Processing error" });
-    //   })
-    //   .save("output.mp4"); // Save output as MP4
-
-    // Create temporary files
     const audioFilePath = "input_audio.webm";
     const videoFilePath = "input_video.webm";
     const outputFilePath = "output.mp4";
 
-    fs.writeFileSync(audioFilePath, audioBuffer);
-    fs.writeFileSync(videoFilePath, videoBuffer);
+    // Download the audio and video files temporarily
+    const downloadFile = async (url, filePath) => {
+      const response = await axios({
+        url,
+        method: "GET",
+        responseType: "stream",
+      });
+      return new Promise((resolve, reject) => {
+        const fileStream = fs.createWriteStream(filePath);
+        response.data.pipe(fileStream);
+        fileStream.on("finish", resolve);
+        fileStream.on("error", reject);
+      });
+    };
+
+    // Wait for both files to download
+    await Promise.all([
+      downloadFile(audioUrl, audioFilePath),
+      downloadFile(videoUrl, videoFilePath),
+    ]);
 
     // Use fluent-ffmpeg to combine the files
     ffmpeg()
