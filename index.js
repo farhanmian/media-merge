@@ -1,3 +1,5 @@
+export const maxDuration = 60;
+
 const express = require("express");
 const fs = require("fs");
 const cors = require("cors");
