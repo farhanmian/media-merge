@@ -1,3 +1,7 @@
+// Set memory and max duration for the function
+// @vercel/functions/memory=3009
+// @vercel/functions/maxDuration=60
+
 const express = require("express");
 const fs = require("fs");
 const cors = require("cors");
