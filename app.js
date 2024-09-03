@@ -101,8 +101,14 @@ app.post("/media", async (req, res) => {
       .input(videoFilePath)
       .input(audioFilePath)
       .inputFormat("webm")
-      .outputOptions("-c:v copy") // Copy video stream
+      .outputOptions("-c:v libx264") // Re-encode video
       .outputOptions("-c:a aac") // Encode audio stream
+      .outputOptions(
+        "-filter_complex",
+        "[0:v]scale=1280:720[main];[1:v]scale=128:128[overlay];[main][overlay]overlay=10:10[v];[1:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[a]"
+      )
+      .outputOptions("-map", "[v]")
+      .outputOptions("-map", "[a]")
       .on("end", () => {
         console.log("Processing finished successfully.");
 
@@ -114,14 +120,16 @@ app.post("/media", async (req, res) => {
         setTimeout(() => {
           fs.unlinkSync(outputFilePath);
           console.log(`Deleted file: ${outputFilePath}`);
-        }, 600000); // 1 hour in milliseconds
+        }, 3600000); // 1 hour in milliseconds
 
         // Send response with the video link
-        const videoUrl = `/videos/output_${randomId}.mp4`; // Update this line
-        res.json({ message: "Video saved successfully.", videoUrl }); // Update this line
+        const videoUrl = `/videos/output_${randomId}.mp4`;
+        res.json({ message: "Video saved successfully.", videoUrl });
       })
-      .on("error", (err) => {
+      .on("error", (err, stdout, stderr) => {
         console.error("Error during processing:", err);
+        console.error("FFmpeg stdout:", stdout);
+        console.error("FFmpeg stderr:", stderr);
         fs.unlinkSync(audioFilePath);
         fs.unlinkSync(videoFilePath);
         res.status(500).json({ error: "Processing error" });
