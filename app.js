@@ -15,7 +15,7 @@ if (!fs.existsSync(videoFolder)) {
 }
 
 const app = express();
-app.use(express.json({ limit: "500mb" })); // To handle large base64 payloads
+app.use(express.json({ limit: "600mb" })); // To handle large base64 payloads
 app.use(cors());
 app.use("/videos", express.static(videoFolder));
 
@@ -28,6 +28,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// Increase the request timeout
+app.use((req, res, next) => {
+  req.setTimeout(10 * 60 * 1000); // 10 minutes
+  next();
+});
+
 app.get("/test", (req, res) => {
   return res.json({ msg: "Hi, it's working!" });
 });
@@ -35,13 +41,19 @@ app.get("/test", (req, res) => {
 app.post("/media", async (req, res) => {
   const { audioUrl, videoUrl } = req.body;
 
+  const outputId = videoUrl.split("/presentation/")[1].split("/")[0];
+
   try {
     // Decode base64 to binary and save as files
     const audioFilePath = "input_audio.webm";
     const videoFilePath = "input_video.webm";
-    // const outputFilePath = "output.mp4";
-    const randomId = Math.random().toString(36).substring(2, 15);
-    const outputFilePath = path.join(videoFolder, `output_${randomId}.mp4`);
+
+    const outputFilePath = path.join(videoFolder, `output_${outputId}.mp4`);
+
+    if (fs.existsSync(outputFilePath)) {
+      const videoUrl = `/videos/output_${outputId}.mp4`;
+      return res.json({ message: "Video already exists.", videoUrl });
+    }
 
     // Download the audio and video files temporarily
     const downloadFile = async (url, filePath) => {
@@ -64,51 +76,13 @@ app.post("/media", async (req, res) => {
       downloadFile(videoUrl, videoFilePath),
     ]);
 
-    // Use fluent-ffmpeg to combine the files
-    // old code, sending video in base64
-
-    // ffmpeg()
-    //   .input(videoFilePath)
-    //   .input(audioFilePath)
-    //   .inputFormat("webm")
-    //   .outputOptions("-c:v copy") // Copy video stream
-    //   .outputOptions("-c:a aac") // Encode audio stream
-    //   .on("end", () => {
-    //     console.log("Processing finished successfully.");
-
-    //     // Read the output file as base64
-    //     const mp4Buffer = fs.readFileSync(outputFilePath);
-    //     const mp4Base64 = mp4Buffer.toString("base64");
-
-    //     // Clean up temporary files
-    //     fs.unlinkSync(audioFilePath);
-    //     fs.unlinkSync(videoFilePath);
-    //     fs.unlinkSync(outputFilePath);
-
-    //     // Send the base64 encoded video
-    //     res.json({ videoBase64: `data:video/mp4;base64,${mp4Base64}` });
-    //   })
-    //   .on("error", (err) => {
-    //     console.error("Error during processing:", err);
-    //     fs.unlinkSync(audioFilePath);
-    //     fs.unlinkSync(videoFilePath);
-    //     res.status(500).json({ error: "Processing error" });
-    //   })
-    //   .save(outputFilePath); // Save output as MP4
-
     // new code, sending video url
     ffmpeg()
       .input(videoFilePath)
       .input(audioFilePath)
       .inputFormat("webm")
-      .outputOptions("-c:v libx264") // Re-encode video
+      .outputOptions("-c:v copy") // Copy video stream
       .outputOptions("-c:a aac") // Encode audio stream
-      .outputOptions(
-        "-filter_complex",
-        "[0:v]scale=1280:720[main];[1:v]scale=128:128[overlay];[main][overlay]overlay=10:10[v];[1:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[a]"
-      )
-      .outputOptions("-map", "[v]")
-      .outputOptions("-map", "[a]")
       .on("end", () => {
         console.log("Processing finished successfully.");
 
@@ -120,16 +94,14 @@ app.post("/media", async (req, res) => {
         setTimeout(() => {
           fs.unlinkSync(outputFilePath);
           console.log(`Deleted file: ${outputFilePath}`);
-        }, 3600000); // 1 hour in milliseconds
+        }, 259200000); // 3 days milliseconds
 
         // Send response with the video link
-        const videoUrl = `/videos/output_${randomId}.mp4`;
-        res.json({ message: "Video saved successfully.", videoUrl });
+        const videoUrl = `/videos/output_${outputId}.mp4`; // Update this line
+        res.json({ message: "Video saved successfully.", videoUrl }); // Update this line
       })
-      .on("error", (err, stdout, stderr) => {
+      .on("error", (err) => {
         console.error("Error during processing:", err);
-        console.error("FFmpeg stdout:", stdout);
-        console.error("FFmpeg stderr:", stderr);
         fs.unlinkSync(audioFilePath);
         fs.unlinkSync(videoFilePath);
         res.status(500).json({ error: "Processing error" });
