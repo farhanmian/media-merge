@@ -52,7 +52,10 @@ app.post("/media", async (req, res) => {
 
     if (fs.existsSync(outputFilePath)) {
       const videoUrl = `/videos/output_${outputId}.mp4`;
-      return res.json({ message: "Video already exists.", videoUrl });
+      return res.json({
+        message: "Video already exists.",
+        videoUrl: `/media-api${videoUrl}`,
+      });
     }
 
     // Download the audio and video files temporarily
@@ -99,9 +102,9 @@ app.post("/media", async (req, res) => {
         // Send response with the video link
         const videoUrl = `/videos/output_${outputId}.mp4`; // Update this line
 
-        const responseVideoUrl = req.headers.host.includes("localhost")
-          ? videoUrl
-          : `/media-api${videoUrl}`;
+        // const responseVideoUrl = req.headers.host.includes("localhost")
+        //   ? videoUrl
+        //   : `/media-api${videoUrl}`;
 
         res.json({
           message: "Video saved successfully.",
