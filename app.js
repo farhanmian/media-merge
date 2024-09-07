@@ -98,7 +98,14 @@ app.post("/media", async (req, res) => {
 
         // Send response with the video link
         const videoUrl = `/videos/output_${outputId}.mp4`; // Update this line
-        res.json({ message: "Video saved successfully.", videoUrl }); // Update this line
+        const responseVideoUrl =
+          process.env.NODE_ENV === "production"
+            ? `/media-api${videoUrl}`
+            : videoUrl;
+        res.json({
+          message: "Video saved successfully.",
+          videoUrl: responseVideoUrl,
+        }); // Update this line
       })
       .on("error", (err) => {
         console.error("Error during processing:", err);
