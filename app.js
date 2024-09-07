@@ -105,7 +105,7 @@ app.post("/media", async (req, res) => {
 
         res.json({
           message: "Video saved successfully.",
-          videoUrl: responseVideoUrl,
+          videoUrl: `/media-api${videoUrl}`,
         }); // Update this line
       })
       .on("error", (err) => {
