@@ -98,10 +98,11 @@ app.post("/media", async (req, res) => {
 
         // Send response with the video link
         const videoUrl = `/videos/output_${outputId}.mp4`; // Update this line
-        const responseVideoUrl =
-          process.env.NODE_ENV === "production"
-            ? `/media-api${videoUrl}`
-            : videoUrl;
+
+        const responseVideoUrl = req.headers.host.includes("localhost")
+          ? videoUrl
+          : `/media-api${videoUrl}`;
+
         res.json({
           message: "Video saved successfully.",
           videoUrl: responseVideoUrl,
