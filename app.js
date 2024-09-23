@@ -70,25 +70,36 @@ app.post("/media", async (req, res) => {
       });
     };
 
-    // Wait for both files to download
-    await Promise.all([
-      downloadFile(audioUrl, audioFilePath),
-      downloadFile(videoUrl, videoFilePath),
-    ]);
+    // Wait for the audio file to download
+    await downloadFile(audioUrl, audioFilePath);
+
+    let videoDownloaded = false;
+    try {
+      await downloadFile(videoUrl, videoFilePath);
+      videoDownloaded = true;
+    } catch (error) {
+      console.warn(
+        "Video URL is not valid or video does not exist, proceeding with audio only."
+      );
+    }
 
     // new code, sending video url
-    ffmpeg()
-      .input(videoFilePath)
-      .input(audioFilePath)
-      .inputFormat("webm")
-      .outputOptions("-c:v copy") // Copy video stream
+    const ffmpegCommand = ffmpeg().input(audioFilePath).inputFormat("webm");
+
+    if (videoDownloaded) {
+      ffmpegCommand.input(videoFilePath).outputOptions("-c:v copy"); // Copy video stream
+    }
+
+    ffmpegCommand
       .outputOptions("-c:a aac") // Encode audio stream
       .on("end", () => {
         console.log("Processing finished successfully.");
 
         // Clean up temporary files
         fs.unlinkSync(audioFilePath);
-        fs.unlinkSync(videoFilePath);
+        if (videoDownloaded) {
+          fs.unlinkSync(videoFilePath);
+        }
 
         // Schedule deletion of the output file after 1 hour
         setTimeout(() => {
@@ -97,21 +108,19 @@ app.post("/media", async (req, res) => {
         }, 259200000); // 3 days milliseconds
 
         // Send response with the video link
-        const videoUrl = `/videos/output_${outputId}.mp4`; // Update this line
-
-        // const responseVideoUrl = req.headers.host.includes("localhost")
-        //   ? videoUrl
-        //   : `/media-api${videoUrl}`;
+        const videoUrl = `/videos/output_${outputId}.mp4`;
 
         res.json({
           message: "Video saved successfully.",
           videoUrl: videoUrl,
-        }); // Update this line
+        });
       })
       .on("error", (err) => {
         console.error("Error during processing:", err);
         fs.unlinkSync(audioFilePath);
-        fs.unlinkSync(videoFilePath);
+        if (videoDownloaded) {
+          fs.unlinkSync(videoFilePath);
+        }
         res.status(500).json({ error: "Processing error" });
       })
       .save(outputFilePath); // Save output as MP4
